@@ -1,62 +1,39 @@
 ﻿using Library.Models;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Security.Cryptography.X509Certificates;
 
 namespace Library.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
 
-    public class BooksController : ControllerBase
+    public class BooksController (IBookRepository  book) : ControllerBase
     {
        
 
         [HttpGet("getBooks")]
         public IActionResult getBooks() {
 
-
-            return Ok(LibraryDataClass.Books.ToList());
+            return Ok(book.GetAll());
 
         }
+
         [HttpGet("getBooksById")]
         public IActionResult getBooksByID(int id)
         {
-           var book= LibraryDataClass.Books.FirstOrDefault(x => x.Id == id);
-            if (book != null) { return Ok(book); } else return NotFound("No books found with this ID");
-            
-
+            var _book = book.GetById(id);
+            if (_book == null) return NotFound("No books found with this ID"); else { return Ok(_book); } 
         }
 
         [HttpPut("EditBook")]
-        public IActionResult editBook(Book _updatedbookint, int id) {
+        public IActionResult editBook(Book _updatedbook, int id) {
 
-            var book = LibraryDataClass.Books.FirstOrDefault(x => x.Id == id);
-            if (book != null)
-            {
-
-                book.Title = _updatedbookint.Title;
-                book.Author = _updatedbookint.Author;
-                book.PublishedDate = _updatedbookint.PublishedDate;
-                book.Price = _updatedbookint.Price;
-                book.Barcode = _updatedbookint.Barcode;
-                book.ISBN = _updatedbookint.ISBN;
-                book.Genre = _updatedbookint.Genre;
-                book.ShelfId = _updatedbookint.ShelfId;
-
-                return Ok(book);
-            }
-            else return NotFound("No books found with this");
+            var updatedBook = book.Update(id,_updatedbook);
+            if (updatedBook == null) return NotFound("No books found with this ID"); else return Ok(updatedBook);
         }
         [HttpPost("AddBook")]
         public IActionResult AddBook(Book newBook)
         {
-             newBook.Id = ( LibraryDataClass.Books.Last().Id)+1;
-
-            LibraryDataClass.Books.Add(newBook);
-
+            book.Add(newBook);
             return Created($"api/books/{newBook.Id}", newBook);
 
         }
@@ -64,22 +41,18 @@ namespace Library.Controllers
         [HttpGet("SearchByAuthor")]
         public IActionResult GetAuthors(string author)
         {
-            var BookByShelf = LibraryDataClass.Books.Where(x => x.Author == author)
-                //.Select(x=>x.Title)
-                .ToList();
-            return Ok(BookByShelf);
+            return Ok(book.GetBooksByAuthor(author));
         }
 
-        [HttpGet("BookByShelf")]
-        public IActionResult GetBookByShelf(int shlefId) {
-            var BookByShelf = LibraryDataClass.Books.Where(x => x.ShelfId == shlefId).ToList();
+        [HttpGet("SearchByShelf")]
+        public IActionResult GetBookByShelf(int shelf) {
+            var BookByShelf = book.GetBooksByShelf(shelf);
             return Ok(BookByShelf);
         }
 
         [HttpGet("PriceFilter")]
         public IActionResult searchByPrice(double min, double max) {
-            var Books = LibraryDataClass.Books.Where(x => x.Price >= min && x.Price <= max).ToList();
-            return Ok(Books);
+            return Ok(book.GetBooksByPriceRange(min, max));
         }
 
 
@@ -87,17 +60,12 @@ namespace Library.Controllers
         public IActionResult getShelfGenra(string genra)
         {
            
-             var books = LibraryDataClass.Books.Where(x => x.Genre.Equals( genra,StringComparison.OrdinalIgnoreCase)).ToList();
+             var shelf = book.GetBooksByGenre(genra);
 
-            if (books.Count > 0)
-            {
-                var shelf=LibraryDataClass.Shelves
-                    .Where(shelf=>books.Any(x=>x.ShelfId==shelf.Id))
-                     .Select(s => s.ShelfNumber)
-                     .ToList();
+            if (shelf.Count > 0)
                 return Ok(shelf);
-            }
-            else { return NotFound("No books found with this genre."); }
+            
+            else  return NotFound("No books found with this genre."); 
            
         }
     }
