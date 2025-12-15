@@ -1,4 +1,6 @@
-﻿namespace Library.Models
+﻿using Library.Models.Books;
+
+namespace Library.Models
 {
     public class Shelf
     {

@@ -1,4 +1,6 @@
-using Library.Models;
+
+using Library.Models.Books;
+using Library.Models.Sales;
 
 namespace Library
 {
@@ -18,6 +20,7 @@ namespace Library
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddSingleton<IBookRepository, BookRepository>();
+            builder.Services.AddSingleton<ISaleRepository, SaleRepository>();
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.

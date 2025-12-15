@@ -1,4 +1,4 @@
-﻿namespace Library.Models
+﻿namespace Library.Models.Books
 {
     public class Book
     {
@@ -11,6 +11,8 @@
         public DateTime PublishedDate { get; set; }
         public string? ISBN { get; set; }
         public string? Genre { get; set; }
+
+        public int Quantity { get; set; }
 
     }
 }

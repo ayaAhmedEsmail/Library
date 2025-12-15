@@ -1,4 +1,4 @@
-﻿namespace Library.Models
+﻿namespace Library.Models.Books
 {
     public interface IBookRepository
     {
@@ -12,5 +12,8 @@
         List<Book> GetBooksByPriceRange(double minPrice, double maxPrice);
         List<Book> GetBooksByGenre(string genre);
         List<Book> GetBooksByShelf(int shelf);
+
+
+        
     }
 }
