@@ -34,6 +34,8 @@ namespace Library.Controllers
         public IActionResult AddBook(Book newBook)
         {
             book.Add(newBook);
+
+
             return Created($"api/books/{newBook.Id}", newBook);
 
         }
@@ -55,6 +57,11 @@ namespace Library.Controllers
             return Ok(book.GetBooksByPriceRange(min, max));
         }
 
+        [HttpDelete]
+        public IActionResult deleteBook(int id) {
+            var _book = book.Delete(id);
+            return Ok(_book);
+        }
 
         [HttpGet("getShelfGenra")]
         public IActionResult getShelfGenra(string genra)

@@ -2,7 +2,7 @@
 
 namespace Library.Models.Sales
 {
-    public class Sale
+    public class Sales
     {
         public int Id { get; set; }
         public int BookId { get; set; }

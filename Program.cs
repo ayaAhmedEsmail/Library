@@ -1,6 +1,7 @@
 
 using Library.Models.Books;
 using Library.Models.Sales;
+using Microsoft.EntityFrameworkCore;
 
 namespace Library
 {
@@ -19,8 +20,14 @@ namespace Library
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.AddSingleton<IBookRepository, BookRepository>();
-            builder.Services.AddSingleton<ISaleRepository, SaleRepository>();
+
+            builder.Services.AddDbContext<ApplicationDBContext>(
+                option=>option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddScoped<IBookRepository, BookRepository>();
+            builder.Services.AddScoped<ICartRepository, CartRepository>();
+            builder.Services.AddScoped<ISalesRepository, SalesRepository>();
+            // builder.Services.AddSingleton<ICartManagment, CartManagment>();
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.

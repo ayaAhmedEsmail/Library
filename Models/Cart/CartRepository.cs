@@ -5,23 +5,29 @@ using System.Net;
 namespace Library.Models.Sales
 {
 
-    public class SaleRepository : ISaleRepository
+    public class CartRepository(ApplicationDBContext dbContext) : ICartRepository
     {
-        private readonly List<Sale> _sales = new();
-        private readonly IBookRepository _bookRepository;
-        private readonly List<CartItems> _cart = new();
+        private readonly List<CartItems> _cart = dbContext.CartItems.ToList();
+        private readonly List<Sales> _sales = dbContext.Sales.ToList();
+        private readonly List<Book> _book = dbContext.Books.ToList();
+        private readonly IBookRepository _bookRepository = new BookRepository(dbContext);
+        //private readonly List<Sale> _sales = new();
+        //private readonly IBookRepository _bookRepository;
+        //private readonly List<CartItems> _cart = new();
 
-        public SaleRepository(IBookRepository bookRepository)
-        {
-            _bookRepository = bookRepository;
-        }
+
+
+        //public SaleRepository(IBookRepository bookRepository)
+        //{
+        //    _bookRepository = bookRepository;
+        //}
 
 
         // Add book to cart if available in requested quantity
-        public List<Book> AddBookToCart(int bookId, int quantity)
+        public List<CartItems> AddBookToCart(int bookId, int quantity)
         {
             // Validate book existence
-            var book = _bookRepository.GetById(bookId);
+            var book = _book.Find(c=>c.Id==bookId);
             if (book == null)
                 throw new Exception("Book not found.");
 
@@ -37,20 +43,20 @@ namespace Library.Models.Sales
             {
                 // Update quantity if already in cart
                 existingCartItem.Quantity += quantity;
-                return GetCartItems();
-
-
             }
             else
             {
                 // Add new book to cart
-                _cart.Add(new CartItems
+                dbContext.CartItems.Add(new CartItems
                 {
                     BookId = bookId,
-                    Quantity = quantity
+                    Quantity = quantity,
+                    Book = book
                 });
+              
             }
-            return GetCartItems();
+            dbContext.SaveChanges();
+            return dbContext.CartItems.ToList();
 
         }
 
@@ -67,19 +73,18 @@ namespace Library.Models.Sales
         // Check if the requested quantity of the book is available
         public bool checkBookAvailability(int bookId, int quantity)
         {
-
-            var book = _bookRepository.GetById(bookId);
+            var book = _book.Find(b=>b.Id==bookId);
             if (book == null)
             {
                 return false;
             }
             return book.Quantity >= quantity;
         }
-        public List<Sale> GetAllSales()
-        {
-            var sales = _sales.ToList();
-            return sales;
-        }
+        //public List<Sales> GetAllSales()
+        //{
+        //    var sales = _sales.ToList();
+        //    return sales;
+        //}
 
         public int getBookCount(int bookId)
         {
@@ -95,23 +100,19 @@ namespace Library.Models.Sales
         }
 
         // Get all items currently in the cart
-        public List<Book> GetCartItems()
+        public List<CartItems> GetCartItems()
         {
-            var cartBooks= new List<Book>();
-            foreach (var item in _cart)
-            {
-                var book = _bookRepository.GetById(item.BookId);
-                if (book != null)
-                {
-                    cartBooks.Add(book);
+            foreach (var item in _cart) {
+                   var book = _book.Find(b => b.Id == item.BookId);
+                    item.Book = book;
                 }
-            }
-            return cartBooks;
+               Console.WriteLine($"book count number:{_cart.Count}");
+               return _cart.ToList();
 
         }
-        public List<Sale> SaleAllCart()
+        public List<Sales> SaleAllCart()
         {
-            var salesList = new List<Sale>();
+            var salesList = new List<Sales>();
 
             if (_cart.Count == 0)
                 throw new Exception("Cart is empty. Add items to cart first.");
@@ -138,26 +139,31 @@ namespace Library.Models.Sales
                 if (book == null)
                     throw new Exception("Book not found.");
 
-                var sale = new Sale
+                var sale = new Sales
                 {
                     BookId = cartItem.BookId,
                     SaleDate = DateTime.Now,
                     Quantity = cartItem.Quantity,
                     UnitPrice = book.Price,
-                    TotalPrice = cartItem.BookId* cartItem.Quantity
+                    TotalPrice = book.Price * cartItem.Quantity,
+                    Book = book,
+
                 };
                 _sales.Add(sale);
+                dbContext.Sales.Add(sale);
+                dbContext.SaveChanges();
                 salesList.Add(sale);
 
                 // Update book quantity in the repository
                 var newQuantity = updateQuentity(cartItem.BookId, cartItem.Quantity);
                 Console.WriteLine($"After sale - Book ID {book.Id}: New Quantity = {newQuantity}");
+
+                dbContext.SaveChanges();
             }
             // Clear the cart before processing the sale
             ClearCart();
             return salesList;
         }
-
         public Book SaleBook(int bookId, int quantity)
         {
             // check availability before creating sale
@@ -169,7 +175,7 @@ namespace Library.Models.Sales
             if (book == null)
                 throw new Exception("Book not found.");
 
-            var sale = new Sale
+            var sale = new Sales
             {
                 BookId = bookId,
                 SaleDate = DateTime.Now,
@@ -190,7 +196,8 @@ namespace Library.Models.Sales
 
         public void ClearCart()
         {
-            _cart.Clear();
+            dbContext.CartItems.RemoveRange();
+            dbContext.SaveChanges();
         }
 
         int updateQuentity(int bookId,int quantity) {
@@ -201,6 +208,7 @@ namespace Library.Models.Sales
 
                 book.Quantity -= quantity;
                 _bookRepository.Update(bookId, book);
+                dbContext.SaveChanges();
             }
             else throw new Exception($"Cannot complete sale. Only {book.Quantity} books available, but trying to sell {quantity}.");
             return book.Quantity;
@@ -218,9 +226,9 @@ namespace Library.Models.Sales
             else {
 
                 foreach (var cartItem in _cart) {
+
                     var book = _bookRepository.GetById(cartItem.BookId);
                     if (book != null) {
-
                         var totalperItem = book.Price * cartItem.Quantity;
                         total = total + totalperItem;
                     }
@@ -234,6 +242,15 @@ namespace Library.Models.Sales
            var totalItems = 0;
             totalItems = _cart.Sum(item => item.Quantity);
             return totalItems;
+        }
+
+        public void RemoveBookFromCart(int bookId)
+        {
+            var cartItem = _cart.FirstOrDefault(c => c.BookId == bookId);
+            if (cartItem != null) { 
+                var removed = dbContext.CartItems.Remove(cartItem);
+                dbContext.SaveChanges();
+            }
         }
     }
 }
